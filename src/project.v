@@ -5,23 +5,33 @@
 
 `default_nettype none
 
-module tt_um_IHP_example (
-    input  wire [7:0] ui_in,    // Dedicated inputs
-    output wire [7:0] uo_out,   // Dedicated outputs
-    input  wire [7:0] uio_in,   // IOs: Input path
-    output wire [7:0] uio_out,  // IOs: Output path
-    output wire [7:0] uio_oe,   // IOs: Enable path (active high: 0=input, 1=output)
-    input  wire       ena,      // always 1 when the design is powered, so you can ignore it
-    input  wire       clk,      // clock
-    input  wire       rst_n     // reset_n - low to reset
+module tt_um_programmable_counter (
+    input wire clk,          // Clock input
+    input wire reset,        // Active-high reset
+    input wire load,         // Load control signal
+    input wire oe,           // Output enable (active-high for tri-state)
+    input wire [7:0] data_in, // 8-bit input data for loading
+    output wire [7:0] count  // 8-bit counter output (tri-state)
 );
 
-  // All output pins must be assigned. If not used, assign to 0.
-  assign uo_out  = ui_in + uio_in;  // Example: ou_out is the sum of ui_in and uio_in
-  assign uio_out = 0;
-  assign uio_oe  = 0;
+    // Internal counter register
+    reg [7:0] counter_reg;
 
-  // List all unused inputs to prevent warnings
-  wire _unused = &{ena, clk, rst_n, 1'b0};
+    // Counter logic
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            // Asynchronous reset (clears the counter)
+            counter_reg <= 8'b0;
+        end else if (load) begin
+            // Synchronous load (loads data_in into the counter)
+            counter_reg <= data_in;
+        end else begin
+            // Normal counting operation (increment by 1)
+            counter_reg <= counter_reg + 1;
+        end
+    end
+
+    // Tri-state output control
+    assign count = oe ? counter_reg : 8'bz;
 
 endmodule
